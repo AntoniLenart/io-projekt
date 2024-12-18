@@ -40,6 +40,7 @@ class RecorderApp:
             self.stop_button.configure(state="normal")
 
     def stop_recording(self):
+        self.recorder.stop_recording()
         self.start_button.configure(state="normal")
         self.stop_button.configure(state="disabled")
 

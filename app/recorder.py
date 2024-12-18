@@ -4,7 +4,7 @@ import subprocess
 import pygetwindow as gw
 from tkinter import messagebox, Toplevel, Listbox, Button, END
 from datetime import datetime
-
+import signal
 
 class Recorder:
     BASE_DIR = os.path.join(os.getcwd(), "assets", "recordings")
@@ -71,13 +71,53 @@ class Recorder:
         return True
 
     def _record(self):
-        # Placeholder for recording logic
-        pass
+        screen_device = "desktop"  # Ustawienie grabbera dla Windows
+        audio_device = "audio=@device_cm_{33D9A762-90C8-11D0-BD43-00A0C911CE86}\wave_{A59F9A3A-5E88-4C89-BC86-1839AB48F7F3}"
+        framerate = "30"
+
+        ffmpeg_command = [
+            "ffmpeg",
+            "-y",  # Nadpisz istniejący plik
+            "-f", "gdigrab",  # Grabber ekranu
+            "-framerate", framerate,  # Częstotliwość klatek
+            "-i", screen_device,  # Źródło wideo: ekran główny
+            "-f", "dshow",  # Grabber dźwięku
+            "-i", audio_device,  # Źródło audio: mikrofon
+            "-pix_fmt", "yuv420p",  # Format obrazu
+            "-c:v", "libx264",  # Codec wideo
+            "-preset", "ultrafast",  # Preset szybkości kodowania
+            "-crf", "23",  # Jakość kompresji (niższe = lepsze)
+            "-b:a", "128k",  # Przepływność audio
+            "-vf", "scale=3840:1080",  # Poprawiona rozdzielczość
+            self.video_path  # Ścieżka do pliku wyjściowego
+        ]
+        print(ffmpeg_command)
+        try:
+            # Uruchomienie procesu ffmpeg
+            self.process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = self.process.communicate()
+            if stderr:
+                print("Błąd w ffmpeg:", stderr.decode())
+            else:
+                print("Nagrywanie zakończone.")
+        except Exception as e:
+            print(f"Błąd uruchamiania ffmpeg: {e}")
 
     def stop_recording(self):
-        self.main_gui.stop_recording()
-        #if self.recording and self.process:
-        #    self.recording = False
-        #    self.process.terminate()
-        #    messagebox.showinfo("Nagrywanie", "Nagrywanie zakończone.")
-        #    return True
+        if self.recording and self.process:
+            ##############DO ZROBIENIA NIE WIEM ######################
+            self.recording = False
+            pid = self.process.pid  # Pobierz PID procesu
+            os.kill(pid, signal.SIGINT)  # Wysłanie sygnału SIGINT (Ctrl+C)
+            self.process.wait()  # Poczekaj na zakończenie procesu
+
+            # Sprawdzamy, czy proces zakończył się poprawnie
+            if self.process.returncode != 0:
+                messagebox.showerror("Błąd", "Nagranie nie zostało zapisane poprawnie.")
+            else:
+                messagebox.showinfo("Nagrywanie", f"Nagranie zapisano w: {self.video_path}")
+            return True
+        else:
+            messagebox.showerror("Błąd", "Nagrywanie nie jest aktywne.")
+            return False
+
