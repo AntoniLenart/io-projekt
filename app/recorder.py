@@ -23,6 +23,24 @@ class Recorder:
         self.audio_frames = []
         self.audio_stream = None
 
+        # Initialize PyAudio
+        self.p = pyaudio.PyAudio()
+        self.stream = None
+        self.device_index = self.find_input_device()
+
+        if self.device_index is None:
+            raise ValueError(
+                "Nie znaleziono urządzenia 'Stereo Mix'. Upewnij się, że jest włączone."
+            )
+
+    def find_input_device(self):
+        """Znajduje urządzenie wejściowe 'Stereo Mix'."""
+        for i in range(self.p.get_device_count()):
+            device_info = self.p.get_device_info_by_index(i)
+            if "stereo mix" in device_info.get("name", "").lower() or "miks stereo" in device_info.get("name", "").lower():
+                return i
+        return None
+
     def start_recording(self):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.record_dir = os.path.join(self.BASE_DIR, f"recording_{timestamp}")
@@ -61,38 +79,21 @@ class Recorder:
         self.captured_video.release()
 
     def list_audio_devices(self):
-        p = pyaudio.PyAudio()
-        device_count = p.get_device_count()
+        device_count = self.p.get_device_count()
         devices = []
         for i in range(device_count):
-            device_info = p.get_device_info_by_index(i)
+            device_info = self.p.get_device_info_by_index(i)
             devices.append((i, device_info.get('name')))
-        p.terminate()
         return devices
 
     def _record_audio(self):
-        p = pyaudio.PyAudio()
-
-        # Wybierz urządzenie do nagrywania (np. "Stereo Mix")
-        device_index = None
-        devices = self.list_audio_devices()
-        print(devices)
-        for i, name in devices:
-            if "Stereo Mix" or "stereo mix" or "miks stereo" in name:  # Zmień nazwę na odpowiednią dla twojego systemu
-                device_index = i
-                break
-
-        if device_index is None:
-            print("Nie znaleziono urządzenia 'Stereo Mix'. Nagrywanie mikrofonu.")
-            device_index = None  # Domyślnie nagrywanie mikrofonu
-
-        self.audio_stream = p.open(
+        self.audio_stream = self.p.open(
             format=pyaudio.paInt16,
             channels=2,
             rate=44100,
             input=True,
             frames_per_buffer=1024,
-            input_device_index=device_index
+            input_device_index=self.device_index
         )
 
         while self.recording:
@@ -102,11 +103,11 @@ class Recorder:
         # Save audio when recording stops
         self.audio_stream.stop_stream()
         self.audio_stream.close()
-        p.terminate()
+        self.p.terminate()
 
         with wave.open(self.audio_path, 'wb') as wf:
             wf.setnchannels(2)
-            wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+            wf.setsampwidth(self.p.get_sample_size(pyaudio.paInt16))
             wf.setframerate(44100)
             wf.writeframes(b''.join(self.audio_frames))
 
