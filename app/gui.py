@@ -15,20 +15,14 @@ class RecorderApp:
         self.recorder = Recorder(self)
         self.file_manager = FileManager()
 
-        # Register the callback for app selection
-        self.recorder.set_app_selected_callback(self.app_selected)
-
         # GUI
-        self.select_app_button = ctk.CTkButton(root, text="Wybierz Aplikację", command=self.recorder.select_application)
-        self.select_app_button.pack(pady=10)
-
         self.selected_app_label = ctk.CTkLabel(root, text="Nie wybrano aplikacji")
         self.selected_app_label.pack(pady=5)
 
-        self.start_button = ctk.CTkButton(root, text="Start Nagrywania", command=self.start_recording, state="disabled")
+        self.start_button = ctk.CTkButton(root, text="Start Nagrywania", command=self.start_recording, state="normal")
         self.start_button.pack(pady=10)
 
-        self.stop_button = ctk.CTkButton(root, text="Stop Nagrywania", command=self.stop_recording, state="disabled")
+        self.stop_button = ctk.CTkButton(root, text="Stop Nagrywania", command=self.stop_recording, state="normal")
         self.stop_button.pack(pady=5)
 
         self.browse_button = ctk.CTkButton(root, text="Przeglądanie Plików", command=self.file_manager.browse_files)
@@ -43,11 +37,6 @@ class RecorderApp:
         self.recorder.stop_recording()
         self.start_button.configure(state="normal")
         self.stop_button.configure(state="disabled")
-
-    def app_selected(self, selected_app):
-        """Callback when an application is selected."""
-        self.selected_app_label.configure(text=f"Wybrano: {selected_app}")
-        self.start_button.configure(state="normal")
 
 
 if __name__ == "__main__":
