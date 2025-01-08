@@ -1,10 +1,15 @@
 import os
 import threading
-import subprocess
 import pygetwindow as gw
+import pyautogui
 from tkinter import messagebox, Toplevel, Listbox, Button, END
 from datetime import datetime
-import signal
+import cv2
+import pyaudio
+import wave
+import time
+import numpy as np
+
 
 class Recorder:
     BASE_DIR = os.path.join(os.getcwd(), "assets", "recordings")
@@ -12,10 +17,13 @@ class Recorder:
     def __init__(self, main_gui):
         os.makedirs(self.BASE_DIR, exist_ok=True)
         self.recording = False
-        self.process = None
         self.selected_app = None
         self.on_app_selected_callback = None  # Callback for app selection
         self.main_gui = main_gui
+        self.captured_video = None
+        self.audio_thread = None
+        self.audio_frames = []
+        self.audio_stream = None
 
     def set_app_selected_callback(self, callback):
         """Set a callback to notify when an app is selected."""
@@ -65,59 +73,96 @@ class Recorder:
         self.record_dir = os.path.join(self.BASE_DIR, f"recording_{timestamp}")
         os.makedirs(self.record_dir, exist_ok=True)
         self.video_path = os.path.join(self.record_dir, "recording.mp4")
+        self.audio_path = os.path.join(self.record_dir, "recording.wav")
+
+        screen_size = pyautogui.size()  # Get screen resolution
+        self.fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+        self.captured_video = cv2.VideoWriter(self.video_path, self.fourcc, 10.0, screen_size)
+
         self.recording = True
 
-        threading.Thread(target=self._record, daemon=True).start()
+        # Start recording threads
+        video_thread = threading.Thread(target=self._record_screen, daemon=True)
+        self.audio_thread = threading.Thread(target=self._record_audio, daemon=True)
+
+        video_thread.start()
+        self.audio_thread.start()
         return True
 
-    def _record(self):
-        screen_device = "desktop"  # Ustawienie grabbera dla Windows
-        audio_device = "audio=@device_cm_{33D9A762-90C8-11D0-BD43-00A0C911CE86}\wave_{A59F9A3A-5E88-4C89-BC86-1839AB48F7F3}"
-        framerate = "30"
+    def _record_screen(self):
+        while self.recording:
+            # Capture the screen using pyautogui
+            screenshot = pyautogui.screenshot()
 
-        ffmpeg_command = [
-            "ffmpeg",
-            "-y",  # Nadpisz istniejący plik
-            "-f", "gdigrab",  # Grabber ekranu
-            "-framerate", framerate,  # Częstotliwość klatek
-            "-i", screen_device,  # Źródło wideo: ekran główny
-            "-f", "dshow",  # Grabber dźwięku
-            "-i", audio_device,  # Źródło audio: mikrofon
-            "-pix_fmt", "yuv420p",  # Format obrazu
-            "-c:v", "libx264",  # Codec wideo
-            "-preset", "ultrafast",  # Preset szybkości kodowania
-            "-crf", "23",  # Jakość kompresji (niższe = lepsze)
-            "-b:a", "128k",  # Przepływność audio
-            "-vf", "scale=3840:1080",  # Poprawiona rozdzielczość
-            self.video_path  # Ścieżka do pliku wyjściowego
-        ]
-        print(ffmpeg_command)
-        try:
-            # Uruchomienie procesu ffmpeg
-            self.process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = self.process.communicate()
-            if stderr:
-                print("Błąd w ffmpeg:", stderr.decode())
-            else:
-                print("Nagrywanie zakończone.")
-        except Exception as e:
-            print(f"Błąd uruchamiania ffmpeg: {e}")
+            # Convert the Pillow image to a NumPy array and directly write to OpenCV
+            frame = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+
+            # Write the frame to the video file
+            self.captured_video.write(frame)
+
+            # Sleep to control the frame rate
+            time.sleep(0.1)  # Adjust frame rate if needed
+
+        self.captured_video.release()
+
+    def list_audio_devices(self):
+        p = pyaudio.PyAudio()
+        device_count = p.get_device_count()
+        devices = []
+        for i in range(device_count):
+            device_info = p.get_device_info_by_index(i)
+            devices.append((i, device_info.get('name')))
+        p.terminate()
+        return devices
+
+    def _record_audio(self):
+        p = pyaudio.PyAudio()
+
+        # Wybierz urządzenie do nagrywania (np. "Stereo Mix")
+        device_index = None
+        devices = self.list_audio_devices()
+        print(devices)
+        for i, name in devices:
+            if "Stereo Mix" or "stereo mix" or "miks stereo" in name:  # Zmień nazwę na odpowiednią dla twojego systemu
+                device_index = i
+                break
+
+        if device_index is None:
+            print("Nie znaleziono urządzenia 'Stereo Mix'. Nagrywanie mikrofonu.")
+            device_index = None  # Domyślnie nagrywanie mikrofonu
+
+        self.audio_stream = p.open(
+            format=pyaudio.paInt16,
+            channels=2,
+            rate=44100,
+            input=True,
+            frames_per_buffer=1024,
+            input_device_index=device_index
+        )
+
+        while self.recording:
+            data = self.audio_stream.read(1024)
+            self.audio_frames.append(data)
+
+        # Save audio when recording stops
+        self.audio_stream.stop_stream()
+        self.audio_stream.close()
+        p.terminate()
+
+        with wave.open(self.audio_path, 'wb') as wf:
+            wf.setnchannels(2)
+            wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+            wf.setframerate(44100)
+            wf.writeframes(b''.join(self.audio_frames))
 
     def stop_recording(self):
-        if self.recording and self.process:
-            ##############DO ZROBIENIA NIE WIEM ######################
+        if self.recording:
             self.recording = False
-            pid = self.process.pid  # Pobierz PID procesu
-            os.kill(pid, signal.SIGINT)  # Wysłanie sygnału SIGINT (Ctrl+C)
-            self.process.wait()  # Poczekaj na zakończenie procesu
+            if self.audio_thread:
+                self.audio_thread.join()  # Wait for audio thread to finish
 
-            # Sprawdzamy, czy proces zakończył się poprawnie
-            if self.process.returncode != 0:
-                messagebox.showerror("Błąd", "Nagranie nie zostało zapisane poprawnie.")
-            else:
-                messagebox.showinfo("Nagrywanie", f"Nagranie zapisano w: {self.video_path}")
+            messagebox.showinfo("Nagrywanie", f"Nagranie zapisano w: {self.record_dir}")
             return True
         else:
             messagebox.showerror("Błąd", "Nagrywanie nie jest aktywne.")
             return False
-
