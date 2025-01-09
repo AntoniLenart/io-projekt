@@ -1,10 +1,11 @@
-from app.gui import RecorderApp
+from app.gui import App
 import customtkinter as ctk
 
 
 def main():
     root = ctk.CTk()
-    app = RecorderApp(root)
+    print(type(root))
+    app = App(root)
     root.mainloop()
 
 

@@ -3,8 +3,7 @@ from tkinter import messagebox
 from app.recorder import Recorder
 from app.file_manager import FileManager
 
-
-class RecorderApp:
+class App:
     def __init__(self, root):
         self.root = root
         self.root.title("Aplikacja do Nagrywania Spotkań Online")
@@ -15,9 +14,6 @@ class RecorderApp:
         self.recorder = Recorder(self)
         self.file_manager = FileManager()
 
-        # GUI
-        self.selected_app_label = ctk.CTkLabel(root, text="Nie wybrano aplikacji")
-        self.selected_app_label.pack(pady=5)
 
         self.start_button = ctk.CTkButton(root, text="Start Nagrywania", command=self.start_recording, state="normal")
         self.start_button.pack(pady=10)
@@ -43,5 +39,5 @@ if __name__ == "__main__":
     import tkinter as tk
 
     root = tk.Tk()
-    app = RecorderApp(root)
+    app = App(root)
     root.mainloop()

@@ -5,6 +5,7 @@ from tkinter import messagebox, Toplevel, Listbox, Button, END
 from datetime import datetime
 import cv2
 import pyaudio
+from pydub import AudioSegment
 import wave
 import time
 import numpy as np
@@ -13,112 +14,138 @@ import numpy as np
 class Recorder:
     BASE_DIR = os.path.join(os.getcwd(), "assets", "recordings")
 
-    def __init__(self, main_gui):
+    def __init__(self, app):
         os.makedirs(self.BASE_DIR, exist_ok=True)
         self.recording = False
-        self.selected_app = None
-        self.main_gui = main_gui
+        self.app = app
         self.captured_video = None
         self.audio_thread = None
-        self.audio_frames = []
-        self.audio_stream = None
-
-        # Initialize PyAudio
-        self.p = pyaudio.PyAudio()
-        self.stream = None
-        self.device_index = self.find_input_device()
-
-        if self.device_index is None:
-            raise ValueError(
-                "Nie znaleziono urządzenia 'Stereo Mix'. Upewnij się, że jest włączone."
-            )
-
-    def find_input_device(self):
-        """Znajduje urządzenie wejściowe 'Stereo Mix'."""
-        for i in range(self.p.get_device_count()):
-            device_info = self.p.get_device_info_by_index(i)
-            if "stereo mix" in device_info.get("name", "").lower() or "miks stereo" in device_info.get("name", "").lower():
-                return i
-        return None
+        self.video_thread = None
+        self.mic_audio_stream = None
+        self.mic_audio_frames = []
+        self.mic_audio_path = None
+        self.stereo_audio_stream = None
+        self.stereo_audio_frames = []
+        self.stereo_audio_path = None
+        self.combined_audio_path = None
 
     def start_recording(self):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.record_dir = os.path.join(self.BASE_DIR, f"recording_{timestamp}")
         os.makedirs(self.record_dir, exist_ok=True)
-        self.video_path = os.path.join(self.record_dir, "recording.mp4")
-        self.audio_path = os.path.join(self.record_dir, "recording.wav")
+        
+        self.video_path = os.path.join(self.record_dir, "video.mp4")
+        self.mic_audio_path = os.path.join(self.record_dir, "mic_audio.wav")
+        self.stereo_audio_path = os.path.join(self.record_dir, "speaker_audio.wav")
+        self.combined_audio_path = os.path.join(self.record_dir, "combined_audio.mp3")
 
-        screen_size = pyautogui.size()  # Get screen resolution
-        self.fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+        screen_size = pyautogui.size()
+        self.fourcc = cv2.VideoWriter_fourcc("m", "p", "4", "v")
         self.captured_video = cv2.VideoWriter(self.video_path, self.fourcc, 10.0, screen_size)
 
         self.recording = True
 
-        # Start recording threads
-        video_thread = threading.Thread(target=self._record_screen, daemon=True)
+        self.video_thread = threading.Thread(target=self._record_screen, daemon=True)
         self.audio_thread = threading.Thread(target=self._record_audio, daemon=True)
-
-        video_thread.start()
+        self.video_thread.start()
         self.audio_thread.start()
-        return True
 
     def _record_screen(self):
         while self.recording:
-            # Capture the screen using pyautogui
             screenshot = pyautogui.screenshot()
-
-            # Convert the Pillow image to a NumPy array and directly write to OpenCV
             frame = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
-
-            # Write the frame to the video file
             self.captured_video.write(frame)
-
-            # Sleep to control the frame rate
-            time.sleep(0.1)  # Adjust frame rate if needed
+            time.sleep(0.1) # TODO change this so that it updates with framerate
 
         self.captured_video.release()
 
-    def list_audio_devices(self):
-        device_count = self.p.get_device_count()
-        devices = []
-        for i in range(device_count):
-            device_info = self.p.get_device_info_by_index(i)
-            devices.append((i, device_info.get('name')))
-        return devices
-
     def _record_audio(self):
-        self.audio_stream = self.p.open(
+        p = pyaudio.PyAudio()
+
+        mic_index = None
+        stereo_index = None
+        
+        for i in range(p.get_device_count()):
+            dev = p.get_device_info_by_index(i)
+            if (dev["name"] == "Miks stereo (Realtek(R) Audio)" and dev["hostApi"] == 0):
+                stereo_index = dev["index"]
+            if (dev["name"] == "Mikrofon (Realtek(R) Audio)"):
+                mic_index = dev["index"]
+                
+        self.mic_audio_stream = p.open(
+            format=pyaudio.paInt16,
+            channels=2,
+            rate=48000,
+            input=True,
+            frames_per_buffer=1024,
+            input_device_index=mic_index
+        )
+        
+        self.stereo_audio_stream = p.open(
             format=pyaudio.paInt16,
             channels=2,
             rate=44100,
             input=True,
             frames_per_buffer=1024,
-            input_device_index=self.device_index
+            input_device_index=stereo_index
         )
 
         while self.recording:
-            data = self.audio_stream.read(1024)
-            self.audio_frames.append(data)
+            mic_audio_data = self.mic_audio_stream.read(1024)
+            stereo_audio_data = self.stereo_audio_stream.read(1024)
+            self.mic_audio_frames.append(mic_audio_data)
+            self.stereo_audio_frames.append(stereo_audio_data)
 
-        # Save audio when recording stops
-        self.audio_stream.stop_stream()
-        self.audio_stream.close()
-        self.p.terminate()
+        self.mic_audio_stream.stop_stream()
+        self.mic_audio_stream.close()
+        
+        self.stereo_audio_stream.stop_stream()
+        self.stereo_audio_stream.close()
+        
+        p.terminate()
 
-        with wave.open(self.audio_path, 'wb') as wf:
-            wf.setnchannels(2)
-            wf.setsampwidth(self.p.get_sample_size(pyaudio.paInt16))
-            wf.setframerate(44100)
-            wf.writeframes(b''.join(self.audio_frames))
+        self._save_audio()
 
     def stop_recording(self):
         if self.recording:
             self.recording = False
             if self.audio_thread:
-                self.audio_thread.join()  # Wait for audio thread to finish
+                self.audio_thread.join()
 
             messagebox.showinfo("Nagrywanie", f"Nagranie zapisano w: {self.record_dir}")
-            return True
+            
         else:
             messagebox.showerror("Błąd", "Nagrywanie nie jest aktywne.")
-            return False
+    
+    def _save_audio(self):
+        p = pyaudio.PyAudio()
+        
+        with wave.open(self.mic_audio_path, "wb") as wf:
+            wf.setnchannels(2)
+            wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+            wf.setframerate(44100)
+            wf.writeframes(b"".join(self.mic_audio_frames))
+            
+        with wave.open(self.stereo_audio_path, "wb") as wf:
+            wf.setnchannels(2)
+            wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+            wf.setframerate(44100)
+            wf.writeframes(b"".join(self.stereo_audio_frames))
+        
+        mic_sound = AudioSegment.from_file(self.mic_audio_path, format="wav")
+        stereo_sound = AudioSegment.from_file(self.stereo_audio_path, format="wav")
+        
+        overlay = stereo_sound.overlay(mic_sound, position=0)
+        overlay.export(self.combined_audio_path, format="mp3", bitrate="192k")
+        
+        p.terminate()
+    
+def list_audio_devices() -> list:
+    p = pyaudio.PyAudio()
+    device_count = p.get_device_count()
+    devices = []
+    for i in range(device_count):
+        device_info = p.get_device_info_by_index(i)
+        devices.append((i, device_info.get("name")))
+    p.terminate()
+    return devices
