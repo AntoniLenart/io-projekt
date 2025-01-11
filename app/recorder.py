@@ -139,13 +139,33 @@ class Recorder:
         overlay.export(self.combined_audio_path, format="mp3", bitrate="192k")
         
         p.terminate()
-    
+
+
 def list_audio_devices() -> list:
     p = pyaudio.PyAudio()
     device_count = p.get_device_count()
     devices = []
+    seen_devices = set()  # Zbiór do śledzenia unikalnych nazw urządzeń
+
     for i in range(device_count):
         device_info = p.get_device_info_by_index(i)
-        devices.append((i, device_info.get("name")))
+        if device_info.get("maxInputChannels") > 0:  # Filtrujemy tylko wejścia audio
+            device_name = device_info.get("name")
+
+            # Próba użycia różnych metod dekodowania
+            for encoding in ["utf-8", "latin1", "windows-1250"]:
+                try:
+                    device_name = device_name.encode("latin1").decode(encoding)
+                    break  # Jeśli dekodowanie się uda, przerwij pętlę
+                except (UnicodeEncodeError, UnicodeDecodeError):
+                    continue
+
+            # Wyklucz zbędne nazwy i sprawdzaj unikalność
+            if device_name not in seen_devices and "mapowanie" not in device_name.lower():
+                devices.append((i, device_name))
+                seen_devices.add(device_name)
+
     p.terminate()
+    print(devices)
     return devices
+
