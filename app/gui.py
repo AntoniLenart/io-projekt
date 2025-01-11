@@ -57,12 +57,31 @@ class App:
         self.stop_button.configure(state="normal")
 
     def stop_recording(self):
-        self.recorder.stop_recording()
-        self.start_button.configure(state="normal")
-        self.stop_button.configure(state="disabled")
+        def save_with_name():
+            custom_name = name_entry.get()
+            if custom_name.strip():  # Jeśli podano nazwę, usuń niechciane spacje
+                self.recorder.stop_recording(custom_name=custom_name)
+            else:
+                self.recorder.stop_recording()
+            popup.destroy()
+            self.start_button.configure(state="normal")
+            self.stop_button.configure(state="disabled")
+
+        # Tworzenie okna dialogowego
+        popup = tk.Toplevel(self.root)
+        popup.title("Zapisz nagranie")
+        popup.geometry("300x150")
+
+        label = tk.Label(popup, text="Wprowadź nazwę pliku (opcjonalne):")
+        label.pack(pady=10)
+
+        name_entry = tk.Entry(popup, width=30)
+        name_entry.pack(pady=5)
+
+        save_button = tk.Button(popup, text="Zapisz", command=save_with_name)
+        save_button.pack(pady=10)
 
     def get_selected_microphone(self):
-        # print(self.selected_device_name.get())
         return self.selected_device_name.get()
 
 

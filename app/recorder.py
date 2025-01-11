@@ -106,11 +106,17 @@ class Recorder:
 
         self._save_audio()
 
-    def stop_recording(self):
+    def stop_recording(self, custom_name=None):
         if self.recording:
             self.recording = False
             if self.audio_thread:
                 self.audio_thread.join()
+
+            if custom_name:
+                # Zmień nazwę katalogu i plików
+                custom_dir = os.path.join(self.BASE_DIR, custom_name)
+                os.rename(self.record_dir, custom_dir)
+                self.record_dir = custom_dir
 
             messagebox.showinfo("Nagrywanie", f"Nagranie zapisano w: {self.record_dir}")
             
@@ -166,6 +172,4 @@ def list_audio_devices() -> list:
                 seen_devices.add(device_name)
 
     p.terminate()
-    print(devices)
     return devices
-
