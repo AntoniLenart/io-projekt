@@ -3,6 +3,7 @@ from tkinter import messagebox
 from app.recorder import Recorder
 from app.file_manager import FileManager
 
+
 class App:
     def __init__(self, root):
         self.root = root
@@ -14,20 +15,19 @@ class App:
         self.recorder = Recorder(self)
         self.file_manager = FileManager()
 
-
         self.start_button = ctk.CTkButton(root, text="Start Nagrywania", command=self.start_recording, state="normal")
         self.start_button.pack(pady=10)
 
-        self.stop_button = ctk.CTkButton(root, text="Stop Nagrywania", command=self.stop_recording, state="normal")
+        self.stop_button = ctk.CTkButton(root, text="Stop Nagrywania", command=self.stop_recording, state="disabled")
         self.stop_button.pack(pady=5)
 
         self.browse_button = ctk.CTkButton(root, text="Przeglądanie Plików", command=self.file_manager.browse_files)
         self.browse_button.pack(pady=10)
 
     def start_recording(self):
-        if self.recorder.start_recording():
-            self.start_button.configure(state="disabled")
-            self.stop_button.configure(state="normal")
+        self.recorder.start_recording()
+        self.start_button.configure(state="disabled")
+        self.stop_button.configure(state="normal")
 
     def stop_recording(self):
         self.recorder.stop_recording()
