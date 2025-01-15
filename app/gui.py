@@ -7,19 +7,19 @@ from app.file_manager import FileManager
 class App:
     def __init__(self, root):
         self.root = root
+        ctk.set_appearance_mode("light")
+        ctk.set_default_color_theme("blue")
         self.root.title("Aplikacja do Nagrywania Spotkań Online")
         self.root.geometry("400x300")
         self.root.resizable(False, False)
-        ctk.set_appearance_mode("light")
-        ctk.set_default_color_theme("blue")
-        self.recorder = Recorder(self)
         self.file_manager = FileManager()
-
         self.settings = {
             "fps": 30,
             "language": "Polski",
             "max_file_size": 100  # w MB
         }
+
+        self.recorder = Recorder(self)
 
         self.start_button = ctk.CTkButton(root, text="Start Nagrywania", command=self.start_recording, state="normal")
         self.start_button.pack(pady=10)

@@ -56,7 +56,7 @@ class Recorder:
             screenshot = pyautogui.screenshot()
             frame = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
             self.captured_video.write(frame)
-            time.sleep(0.1) # TODO change this so that it updates with framerate
+            time.sleep(1/self.settings['fps'])
 
         self.captured_video.release()
 
