@@ -8,12 +8,18 @@ class App:
     def __init__(self, root):
         self.root = root
         self.root.title("Aplikacja do Nagrywania Spotkań Online")
-        self.root.geometry("400x250")
+        self.root.geometry("400x300")
         self.root.resizable(False, False)
         ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("blue")
         self.recorder = Recorder(self)
         self.file_manager = FileManager()
+
+        self.settings = {
+            "fps": 30,
+            "language": "Polski",
+            "max_file_size": 100  # w MB
+        }
 
         self.start_button = ctk.CTkButton(root, text="Start Nagrywania", command=self.start_recording, state="normal")
         self.start_button.pack(pady=10)
@@ -28,6 +34,50 @@ class App:
         self.select_device_button = ctk.CTkButton(root, text="Wybierz Mikrofon", command=self.select_microphone)
         self.select_device_button.pack(pady=10)
 
+        self.settings_button = ctk.CTkButton(root, text="Ustawienia", command=self.open_settings)
+        self.settings_button.pack(pady=10)
+
+    def open_settings(self):
+        settings_window = tk.Toplevel(self.root)
+        settings_window.title("Ustawienia")
+        settings_window.geometry("400x300")
+
+        # FPS ustawienia
+        fps_label = tk.Label(settings_window, text="Ilość FPS:")
+        fps_label.pack(pady=5)
+        fps_entry = tk.Entry(settings_window)
+        fps_entry.insert(0, str(self.settings["fps"]))
+        fps_entry.pack(pady=5)
+
+        # Język ustawienia
+        language_label = tk.Label(settings_window, text="Język:")
+        language_label.pack(pady=5)
+        language_options = ["Polski", "Angielski"]
+        language_var = tk.StringVar(value=self.settings["language"])
+        language_menu = ctk.CTkOptionMenu(settings_window, variable=language_var, values=language_options)
+        language_menu.pack(pady=5)
+
+        # Maksymalny rozmiar pliku ustawienia
+        max_size_label = tk.Label(settings_window, text="Maksymalny rozmiar pliku (MB):")
+        max_size_label.pack(pady=5)
+        max_size_entry = tk.Entry(settings_window)
+        max_size_entry.insert(0, str(self.settings["max_file_size"]))
+        max_size_entry.pack(pady=5)
+
+        # Zapisz ustawienia
+        def save_settings():
+            try:
+                self.settings["fps"] = int(fps_entry.get())
+                self.settings["language"] = language_var.get()
+                self.settings["max_file_size"] = int(max_size_entry.get())
+                messagebox.showinfo("Sukces", "Ustawienia zapisane pomyślnie!")
+                settings_window.destroy()
+            except ValueError:
+                messagebox.showerror("Błąd", "Wprowadź poprawne wartości dla ustawień.")
+
+        save_button = ctk.CTkButton(settings_window, text="Zapisz", command=save_settings)
+        save_button.pack(pady=20)
+
     def select_microphone(self):
         device_window = tk.Toplevel(self.root)
         device_window.title("Wybierz Mikrofon")
@@ -36,7 +86,6 @@ class App:
         devices = list_audio_devices()
         device_names = [f"{i}: {device}" for i, device in devices]
 
-        # Dropdown (OptionMenu)
         self.selected_device_name.set(device_names[0])  # Ustawienie domyślnego wyboru
         device_menu = ctk.CTkOptionMenu(device_window, variable=self.selected_device_name, values=device_names)
         device_menu.pack(padx=10, pady=20)
@@ -67,7 +116,6 @@ class App:
             self.start_button.configure(state="normal")
             self.stop_button.configure(state="disabled")
 
-        # Tworzenie okna dialogowego
         popup = tk.Toplevel(self.root)
         popup.title("Zapisz nagranie")
         popup.geometry("300x150")

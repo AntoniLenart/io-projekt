@@ -28,6 +28,7 @@ class Recorder:
         self.stereo_audio_frames = []
         self.stereo_audio_path = None
         self.combined_audio_path = None
+        self.settings = app.settings
 
     def start_recording(self):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -170,6 +171,6 @@ def list_audio_devices() -> list:
             if device_name not in seen_devices and "mapowanie" not in device_name.lower():
                 devices.append((i, device_name))
                 seen_devices.add(device_name)
-
+    print(devices)
     p.terminate()
     return devices
