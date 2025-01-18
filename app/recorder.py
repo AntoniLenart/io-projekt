@@ -9,6 +9,8 @@ from pydub import AudioSegment
 import wave
 import time
 import numpy as np
+from skimage.metrics import structural_similarity as ssim
+from PIL import Image
 
 
 class Recorder:
@@ -83,15 +85,36 @@ class Recorder:
 
     def _record_screen(self):
         """
-        Records the screen by taking screenshots at regular intervals and saving them as video frames.
+        Records the screen, detects significant changes, and saves slides to a PDF.
         """
+        previous_frame = None
+        slides = []  # List to store unique slides as PIL Images
+
         while self.recording:
             screenshot = pyautogui.screenshot()
-            frame = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+            current_frame = np.array(screenshot)
+
+            # Convert screenshot to grayscale for comparison
+            gray_frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2GRAY)
+
+            if previous_frame is not None:
+                # Compare current frame with the previous one using SSIM
+                score, _ = ssim(previous_frame, gray_frame, full=True)
+
+                # If difference exceeds threshold, save this frame as a slide
+                if score < 0.95:  # Threshold for detecting change
+                    slides.append(screenshot)
+
+            previous_frame = gray_frame
+            frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2BGR)
             self.captured_video.write(frame)
             time.sleep(1 / self.settings['fps'])
 
         self.captured_video.release()
+
+        # Save slides to PDF
+        if slides:
+            slides[0].save("slides.pdf", save_all=True, append_images=slides[1:])
 
     def _record_audio(self):
         """
