@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import tkinter as tk
 from tkinter import messagebox
 from app.recorder import Recorder, list_audio_devices
 from app.file_manager import FileManager
@@ -24,7 +25,7 @@ class App:
         self.browse_button = ctk.CTkButton(root, text="Przeglądanie Plików", command=self.file_manager.browse_files)
         self.browse_button.pack(pady=10)
 
-        self.selected_device_name = tk.StringVar()
+        self.selected_device_name = ctk.StringVar()
         self.select_device_button = ctk.CTkButton(root, text="Wybierz Mikrofon", command=self.select_microphone)
         self.select_device_button.pack(pady=10)
 

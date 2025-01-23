@@ -18,6 +18,7 @@ class Recorder:
         os.makedirs(self.BASE_DIR, exist_ok=True)
         self.recording = False
         self.app = app
+        self.selected_mic_index = None
         self.captured_video = None
         self.audio_thread = None
         self.video_thread = None
@@ -62,20 +63,24 @@ class Recorder:
     def _record_audio(self):
         p = pyaudio.PyAudio()
 
-        mic_index = None
-        stereo_index = None
+        mic_index = self.selected_mic_index
+        if not mic_index:
+            mic_index = p.get_default_input_device_info().get("index")
         
         for i in range(p.get_device_count()):
             dev = p.get_device_info_by_index(i)
             if (dev["name"] == "Miks stereo (Realtek(R) Audio)" and dev["hostApi"] == 0):
                 stereo_index = dev["index"]
-            if (dev["name"] == "Mikrofon (Realtek(R) Audio)"):
-                mic_index = dev["index"]
+        if not stereo_index:
+            print("No stereo mix device detected. Switching do default.")
+            stereo_index = p.get_default_output_device_info().get("index")
+        
+        print(p.get_device_info_by_index(mic_index).items())
                 
         self.mic_audio_stream = p.open(
             format=pyaudio.paInt16,
-            channels=2,
-            rate=48000,
+            channels=int(p.get_device_info_by_index(mic_index).get("maxInputChannels")),
+            rate=int(p.get_device_info_by_index(mic_index).get("defaultSampleRate")),
             input=True,
             frames_per_buffer=1024,
             input_device_index=mic_index
@@ -83,8 +88,8 @@ class Recorder:
         
         self.stereo_audio_stream = p.open(
             format=pyaudio.paInt16,
-            channels=2,
-            rate=44100,
+            channels=int(p.get_device_info_by_index(stereo_index).get("maxInputChannels")),
+            rate=int(p.get_device_info_by_index(stereo_index).get("defaultSampleRate")),
             input=True,
             frames_per_buffer=1024,
             input_device_index=stereo_index
@@ -113,7 +118,6 @@ class Recorder:
                 self.audio_thread.join()
 
             if custom_name:
-                # Zmień nazwę katalogu i plików
                 custom_dir = os.path.join(self.BASE_DIR, custom_name)
                 os.rename(self.record_dir, custom_dir)
                 self.record_dir = custom_dir
@@ -151,22 +155,20 @@ def list_audio_devices() -> list:
     p = pyaudio.PyAudio()
     device_count = p.get_device_count()
     devices = []
-    seen_devices = set()  # Zbiór do śledzenia unikalnych nazw urządzeń
+    seen_devices = set()
 
     for i in range(device_count):
         device_info = p.get_device_info_by_index(i)
-        if device_info.get("maxInputChannels") > 0:  # Filtrujemy tylko wejścia audio
+        if device_info.get("maxInputChannels") > 0:
             device_name = device_info.get("name")
 
-            # Próba użycia różnych metod dekodowania
             for encoding in ["utf-8", "latin1", "windows-1250"]:
                 try:
                     device_name = device_name.encode("latin1").decode(encoding)
-                    break  # Jeśli dekodowanie się uda, przerwij pętlę
+                    break
                 except (UnicodeEncodeError, UnicodeDecodeError):
                     continue
 
-            # Wyklucz zbędne nazwy i sprawdzaj unikalność
             if device_name not in seen_devices and "mapowanie" not in device_name.lower():
                 devices.append((i, device_name))
                 seen_devices.add(device_name)
