@@ -1,5 +1,7 @@
+import threading
+
 import customtkinter as ctk
-import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
 from app.recorder import Recorder, list_audio_devices
 from app.file_manager import FileManager
@@ -136,18 +138,47 @@ class App:
         """
         Stops the recording process and allows the user to save the file with a custom name.
         """
+
         def save_with_name():
             """
             Saves the recording with the provided custom name or a default name if not specified.
+            Shows a loading window while saving.
             """
-            custom_name = name_entry.get()
-            if custom_name.strip():  # Check if a name is provided and remove unwanted spaces
-                self.recorder.stop_recording(custom_name=custom_name)
-            else:
-                self.recorder.stop_recording()
-            popup.destroy()
-            self.start_button.configure(state="normal")
-            self.stop_button.configure(state="disabled")
+            # Tworzenie okna ładowania
+            loading_popup = tk.Toplevel()
+            loading_popup.title("Zapisywanie...")
+            loading_popup.geometry("250x100")
+            loading_popup.resizable(False, False)
+
+            # Środek okna ładowania
+            label = tk.Label(loading_popup, text="Zapisywanie, proszę czekać...", padx=10, pady=10)
+            label.pack()
+
+            # Animowany pasek postępu
+            progress = ttk.Progressbar(loading_popup, mode="indeterminate")
+            progress.pack(pady=10)
+            progress.start(10)
+
+            # Aktualizacja UI
+            loading_popup.update()
+
+            def stop_recording_thread():
+                custom_name = name_entry.get()
+                if custom_name.strip():
+                    self.recorder.stop_recording(custom_name=custom_name)
+                else:
+                    self.recorder.stop_recording()
+
+                # Zamknięcie okna ładowania po zakończeniu
+                progress.stop()
+                loading_popup.destroy()
+                popup.destroy()
+
+                self.start_button.configure(state="normal")
+                self.stop_button.configure(state="disabled")
+
+            # Uruchomienie zapisu w osobnym wątku
+            threading.Thread(target=stop_recording_thread, daemon=True).start()
 
         popup = tk.Toplevel(self.root)
         popup.title("Save Recording")
