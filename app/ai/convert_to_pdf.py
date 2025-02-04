@@ -27,12 +27,12 @@ class PDFGenerator:
         self.output_pdf_path = output_pdf_path
         self.pdf = FPDF()
 
-    def read_file(self, file_path):
+    def read_file(self, txt_file_path):
         """
         Reads content from a text file.
 
         Args:
-            file_path (str): Path to the text file.
+            txt_file_path (str): Path to the text file.
 
         Returns:
             list: Lines of text from the file.
@@ -40,9 +40,9 @@ class PDFGenerator:
         Raises:
             FileNotFoundError: If the specified file does not exist.
         """
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
-        with open(file_path, 'r', encoding='utf-8') as file:
+        if not os.path.exists(txt_file_path):
+            raise FileNotFoundError(f"File not found: {txt_file_path}")
+        with open(txt_file_path, 'r', encoding='utf-8') as file:
             return file.readlines()
 
     def add_text_to_pdf(self, title, content):
@@ -56,12 +56,10 @@ class PDFGenerator:
         self.pdf.set_font("Arial", size=12)
         self.pdf.add_page()
 
-        # Add title
         self.pdf.set_font("Arial", style='B', size=16)
         self.pdf.cell(0, 10, title, ln=True, align='C')
         self.pdf.ln(10)
 
-        # Add content
         self.pdf.set_font("Arial", size=12)
         for line in content:
             self.pdf.multi_cell(0, 10, line)
@@ -77,15 +75,12 @@ class PDFGenerator:
             Exception: If any error occurs during the PDF generation process.
         """
         try:
-            # Read files
             summary_content = self.read_file(self.summary_path)
             transcription_content = self.read_file(self.transcription_path)
 
-            # Add content to PDF
             self.add_text_to_pdf("Summary", summary_content)
             self.add_text_to_pdf("Transcription", transcription_content)
 
-            # Save PDF
             self.pdf.output(self.output_pdf_path)
             print(f"PDF successfully created: {self.output_pdf_path}")
         except Exception as e:
@@ -93,11 +88,9 @@ class PDFGenerator:
 
 
 if __name__ == "__main__":
-    # File paths
     summary_file = "summary.txt"
     transcription_file = "transcription.txt"
     output_pdf = "output.pdf"
-
-    # Create and generate PDF
+    
     pdf_generator = PDFGenerator(summary_file, transcription_file, output_pdf)
     pdf_generator.generate_pdf()

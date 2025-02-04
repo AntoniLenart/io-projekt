@@ -1,1 +1,8 @@
-The speaker discusses a shift in focus for Facebook and Instagram towards preserving free expression, acknowledging the complexity and errors associated with content moderation and censorship over recent years. The plan includes phasing out biased fact-checkers in favor of community notes, simplifying content policies, and adjusting enforcement to prioritize tackling illegal and severe violations while reducing errors and censorship. The speaker also aims to enable more varied opinions and experiences to be shared. Additionally, civic content will re-emerge on the platforms following feedback indicating renewed interest in political discourse, alongside efforts to maintain positive community interactions.
+The speaker addresses a shift in focus for Facebook and Instagram towards prioritizing free expression. Initially, social media was built to give voices to individuals, but over the years, debates on online content harms, political pressures, and complex content moderation systems have led to excessive censorship and mistakes. To counteract this, the speaker outlines several changes:
+
+1. Eliminate fact-checkers in favor of a community notes system akin to the platform X, aiming to reduce political bias and restore trust.
+2. Simplify content policies by removing restrictions on sensitive topics like immigration and gender, allowing more diverse opinions.
+3. Adjust enforcement strategies to focus on illegal and severe violations via filters, while relying on user reports for less severe issues, to decrease errors in content removal.
+4. Reintroduce civic content amidst evolving cultural demands, while maintaining a friendly online environment.
+
+These changes are designed to enhance free expression while responsibly managing harmful content.

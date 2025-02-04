@@ -25,12 +25,11 @@ class App:
         self.root.resizable(False, False)
         self.file_manager = FileManager()
         self.settings = {
-            "fps": 30,
-            "language": "Polish",
-            "max_file_size": 100  # in MB
+            "language": "pl",
+            "max_file_size_MB": 100
         }
 
-        self.recorder = Recorder(self)
+        self.recorder = Recorder(self.settings)
 
         self.start_button = ctk.CTkButton(root, text="Start Recording", command=self.start_recording, state="normal")
         self.start_button.pack(pady=10)
@@ -57,37 +56,27 @@ class App:
         settings_window.title("Settings")
         settings_window.geometry("400x300")
 
-        # FPS settings
-        fps_label = tk.Label(settings_window, text="FPS:")
-        fps_label.pack(pady=5)
-        fps_entry = tk.Entry(settings_window)
-        fps_entry.insert(0, str(self.settings["fps"]))
-        fps_entry.pack(pady=5)
-
-        # Language settings
         language_label = tk.Label(settings_window, text="Language:")
         language_label.pack(pady=5)
-        language_options = ["Polish", "English"]
+        language_options = ["pl", "en"]
         language_var = tk.StringVar(value=self.settings["language"])
         language_menu = ctk.CTkOptionMenu(settings_window, variable=language_var, values=language_options)
         language_menu.pack(pady=5)
 
-        # Maximum file size settings
         max_size_label = tk.Label(settings_window, text="Max File Size (MB):")
         max_size_label.pack(pady=5)
         max_size_entry = tk.Entry(settings_window)
-        max_size_entry.insert(0, str(self.settings["max_file_size"]))
+        max_size_entry.insert(0, str(self.settings["max_file_size_MB"]))
         max_size_entry.pack(pady=5)
 
-        # Save settings
         def save_settings():
             """
             Saves the updated settings and closes the settings window.
             """
             try:
-                self.settings["fps"] = int(fps_entry.get())
                 self.settings["language"] = language_var.get()
-                self.settings["max_file_size"] = int(max_size_entry.get())
+                self.settings["max_file_size_MB"] = int(max_size_entry.get())
+                self.recorder.settings = self.settings
                 messagebox.showinfo("Success", "Settings saved successfully!")
                 settings_window.destroy()
             except ValueError:
@@ -107,7 +96,7 @@ class App:
         devices = list_audio_devices()
         device_names = [f"{i}: {device}" for i, device in devices]
 
-        self.selected_device_name.set(device_names[0])  # Set default selection
+        self.selected_device_name.set(device_names[0])
         device_menu = ctk.CTkOptionMenu(device_window, variable=self.selected_device_name, values=device_names)
         device_menu.pack(padx=10, pady=20)
 
@@ -141,10 +130,7 @@ class App:
             Saves the recording with the provided custom name or a default name if not specified.
             """
             custom_name = name_entry.get()
-            if custom_name.strip():  # Check if a name is provided and remove unwanted spaces
-                self.recorder.stop_recording(custom_name=custom_name)
-            else:
-                self.recorder.stop_recording()
+            self.recorder.stop_recording(custom_name=custom_name.strip())
             popup.destroy()
             self.start_button.configure(state="normal")
             self.stop_button.configure(state="disabled")

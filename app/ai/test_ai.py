@@ -5,12 +5,12 @@ import os
 class TestAiMethods(unittest.TestCase):
     def test_transcribe_audio(self):
         record_dir = os.path.join(os.getcwd(), "app", "ai")
-        transcribe_audio(record_dir)
+        transcribe_audio(record_dir, lang="en")
         self.assertTrue(os.path.exists(os.path.join(record_dir, "transcription.txt")))
     
     def test_summarize_transcript(self):
         record_dir = os.path.join(os.getcwd(), "app", "ai")
-        summarize_transcript(record_dir)
+        summarize_transcript(record_dir, lang="en")
         self.assertTrue(os.path.exists(os.path.join(record_dir, "summary.txt")))
 
 if __name__ == "__main__":

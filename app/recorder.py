@@ -6,11 +6,12 @@ from datetime import datetime
 import cv2
 import pyaudio
 from pydub import AudioSegment
-import wave
 import time
 import numpy as np
-from skimage.metrics import structural_similarity as ssim
-from PIL import Image
+import subprocess
+from PIL import ImageGrab
+from app.ai.ai import summarize_transcript, transcribe_audio
+import mss
 
 
 class Recorder:
@@ -36,29 +37,30 @@ class Recorder:
 
     BASE_DIR = os.path.join(os.getcwd(), "assets", "recordings")
 
-    def __init__(self, app):
+    def __init__(self, settings):
         """
         Initializes the Recorder class.
-
-        Args:
-            app: Reference to the main application, providing settings and utilities.
         """
         os.makedirs(self.BASE_DIR, exist_ok=True)
         self.recording = False
-        self.app = app
-        self.selected_mic_index = None
+        self.settings = settings
+        self.record_dir = None
+        
+        self.combined_audio_path = None
+        self.video_path = None
+        self.full_recording_path = None
+        
+        self.mic_index = None
+        self.stereo_index = None
+        
+        self.fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         self.captured_video = None
-        self.audio_thread = None
-        self.video_thread = None
+        
         self.mic_audio_stream = None
         self.mic_audio_frames = []
-        self.mic_audio_path = None
         self.stereo_audio_stream = None
         self.stereo_audio_frames = []
-        self.stereo_audio_path = None
-        self.combined_audio_path = None
-        self.settings = app.settings
-
+        
     def start_recording(self):
         """
         Starts recording screen and audio simultaneously.
@@ -67,55 +69,90 @@ class Recorder:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.record_dir = os.path.join(self.BASE_DIR, f"recording_{timestamp}")
         os.makedirs(self.record_dir, exist_ok=True)
-
-        self.video_path = os.path.join(self.record_dir, "video.mp4")
-        self.mic_audio_path = os.path.join(self.record_dir, "mic_audio.wav")
-        self.stereo_audio_path = os.path.join(self.record_dir, "speaker_audio.wav")
+        
         self.combined_audio_path = os.path.join(self.record_dir, "combined_audio.mp3")
-
-        screen_size = pyautogui.size()
-        self.fourcc = cv2.VideoWriter_fourcc("m", "p", "4", "v")
-        self.captured_video = cv2.VideoWriter(self.video_path, self.fourcc, 10.0, screen_size)
+        self.video_path = os.path.join(self.record_dir, "video.mp4")
+        self.full_recording_path = os.path.join(self.record_dir, "full_recording.mp4")
+        
+        p = pyaudio.PyAudio()
+        
+        if not self.mic_index:
+            self.mic_index = p.get_default_input_device_info().get("index")
+        
+        for i in range(p.get_device_count()):
+            dev = p.get_device_info_by_index(i)
+            if dev["name"] == "Miks stereo (Realtek(R) Audio)" and dev["hostApi"] == 0:
+                self.stereo_index = dev["index"]
+                break
+                
+        if not self.stereo_index:
+            print("No stereo mix device detected. Switching do default.")
+            self.stereo_index = p.get_default_output_device_info().get("index")
+        
+        p.terminate()
+        
+        self.audio_thread = threading.Thread(target=self._record_audio, daemon=True)
+        self.video_thread = threading.Thread(target=self._record_screen, daemon=True)
 
         self.recording = True
-
-        self.video_thread = threading.Thread(target=self._record_screen, daemon=True)
-        self.audio_thread = threading.Thread(target=self._record_audio, daemon=True)
+        
         self.video_thread.start()
         self.audio_thread.start()
 
+    def stop_recording(self, custom_name=None):
+        """
+        Stops recording and saves the recorded files. Optionally renames the recording directory.
+
+        Args:
+            custom_name (str, optional): Custom name for the recording directory.
+        """
+        if self.recording:
+            self.recording = False
+            if self.video_thread:
+                self.video_thread.join()
+                self.captured_video.release()
+            if self.audio_thread:
+                self.audio_thread.join()
+            if custom_name:
+                custom_dir = os.path.join(self.BASE_DIR, custom_name)
+                os.rename(self.record_dir, custom_dir)
+                self.record_dir = custom_dir
+                self.combined_audio_path = os.path.join(self.record_dir, "combined_audio.mp3")
+                self.video_path = os.path.join(self.record_dir, "video.mp4")
+                self.full_recording_path = os.path.join(self.record_dir, "full_recording.mp4")
+            
+            self.merge_audio_video()
+            # transcribe_audio(self.record_dir, self.settings["language"])
+            # summarize_transcript(self.record_dir, self.settings["language"])
+
+            messagebox.showinfo("Recording", f"Recording saved at: {self.record_dir}")
+        else:
+            messagebox.showerror("Error", "No active recording.")
+    
     def _record_screen(self):
         """
         Records the screen, detects significant changes, and saves slides to a PDF.
-        """
-        previous_frame = None
-        slides = []  # List to store unique slides as PIL Images
-
+        """         
+        start_time = time.time()
+        frames = []
+        frame_ctr = 0
+        sct = mss.mss()
+        screen_size = {"top": 0, "left": 0, "width": 1920, "height": 1080}
+        
         while self.recording:
-            screenshot = pyautogui.screenshot()
-            current_frame = np.array(screenshot)
-
-            # Convert screenshot to grayscale for comparison
-            gray_frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2GRAY)
-
-            if previous_frame is not None:
-                # Compare current frame with the previous one using SSIM
-                score, _ = ssim(previous_frame, gray_frame, full=True)
-
-                # If difference exceeds threshold, save this frame as a slide
-                if score < 0.95:  # Threshold for detecting change
-                    slides.append(screenshot)
-
-            previous_frame = gray_frame
-            frame = cv2.cvtColor(current_frame, cv2.COLOR_RGB2BGR)
-            self.captured_video.write(frame)
-            time.sleep(1 / self.settings['fps'])
-
-        self.captured_video.release()
-
-        # Save slides to PDF
-        if slides:
-            slides[0].save("slides.pdf", save_all=True, append_images=slides[1:])
+            img = sct.grab(screen_size)
+            img_data = np.array(img)
+            rgb_img = cv2.cvtColor(img_data, cv2.COLOR_BGR2RGB)
+            frames.append(rgb_img)
+            frame_ctr += 1
+            
+        stop_time = time.time()
+        duration = stop_time - start_time
+        obtained_fps = frame_ctr / duration 
+        
+        self.captured_video = cv2.VideoWriter(self.video_path, self.fourcc, obtained_fps*1.01, pyautogui.size())
+        [self.captured_video.write(frame) for frame in frames]
+        
 
     def _record_audio(self):
         """
@@ -123,38 +160,23 @@ class Recorder:
         Saves audio frames to buffers for later processing.
         """
         p = pyaudio.PyAudio()
-
-        mic_index = self.selected_mic_index
-        if not mic_index:
-            mic_index = p.get_default_input_device_info().get("index")
-        
-        for i in range(p.get_device_count()):
-            dev = p.get_device_info_by_index(i)
-            if dev["name"] == "Miks stereo (Realtek(R) Audio)" and dev["hostApi"] == 0:
-                stereo_index = dev["index"]
-                
-        if not stereo_index:
-            print("No stereo mix device detected. Switching do default.")
-            stereo_index = p.get_default_output_device_info().get("index")
-        
-        print(p.get_device_info_by_index(mic_index).items())
                 
         self.mic_audio_stream = p.open(
             format=pyaudio.paInt16,
-            channels=int(p.get_device_info_by_index(mic_index).get("maxInputChannels")),
-            rate=int(p.get_device_info_by_index(mic_index).get("defaultSampleRate")),
+            channels=int(p.get_device_info_by_index(self.mic_index).get("maxInputChannels")),
+            rate=int(p.get_device_info_by_index(self.mic_index).get("defaultSampleRate")),
             input=True,
             frames_per_buffer=1024,
-            input_device_index=mic_index
+            input_device_index=self.mic_index
         )
 
         self.stereo_audio_stream = p.open(
             format=pyaudio.paInt16,
-            channels=int(p.get_device_info_by_index(stereo_index).get("maxInputChannels")),
-            rate=int(p.get_device_info_by_index(stereo_index).get("defaultSampleRate")),
+            channels=int(p.get_device_info_by_index(self.stereo_index).get("maxInputChannels")),
+            rate=int(p.get_device_info_by_index(self.stereo_index).get("defaultSampleRate")),
             input=True,
             frames_per_buffer=1024,
-            input_device_index=stereo_index
+            input_device_index=self.stereo_index
         )
 
         while self.recording:
@@ -173,52 +195,61 @@ class Recorder:
 
         self._save_audio()
 
-    def stop_recording(self, custom_name=None):
-        """
-        Stops recording and saves the recorded files. Optionally renames the recording directory.
-
-        Args:
-            custom_name (str, optional): Custom name for the recording directory.
-        """
-        if self.recording:
-            self.recording = False
-            if self.audio_thread:
-                self.audio_thread.join()
-
-            if custom_name:
-                custom_dir = os.path.join(self.BASE_DIR, custom_name)
-                os.rename(self.record_dir, custom_dir)
-                self.record_dir = custom_dir
-
-            messagebox.showinfo("Recording", f"Recording saved at: {self.record_dir}")
-        else:
-            messagebox.showerror("Error", "No active recording.")
 
     def _save_audio(self):
         """
         Saves microphone and stereo audio to separate WAV files and combines them into an MP3 file.
         """
         p = pyaudio.PyAudio()
-
-        with wave.open(self.mic_audio_path, "wb") as wf:
-            wf.setnchannels(2)
-            wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
-            wf.setframerate(44100)
-            wf.writeframes(b"".join(self.mic_audio_frames))
-
-        with wave.open(self.stereo_audio_path, "wb") as wf:
-            wf.setnchannels(2)
-            wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
-            wf.setframerate(44100)
-            wf.writeframes(b"".join(self.stereo_audio_frames))
-
-        mic_sound = AudioSegment.from_file(self.mic_audio_path, format="wav")
-        stereo_sound = AudioSegment.from_file(self.stereo_audio_path, format="wav")
-
+        
+        mic_sound = AudioSegment(
+            data=b"".join(self.mic_audio_frames),
+            sample_width=p.get_sample_size(pyaudio.paInt16),
+            frame_rate=44100,
+            channels=2
+        )
+        
+        stereo_sound = AudioSegment(
+            data=b"".join(self.stereo_audio_frames),
+            sample_width=p.get_sample_size(pyaudio.paInt16),
+            frame_rate=44100,
+            channels=2
+        )
+        
         overlay = stereo_sound.overlay(mic_sound, position=0)
         overlay.export(self.combined_audio_path, format="mp3", bitrate="192k")
 
         p.terminate()
+    
+    def merge_audio_video(self):
+        try:
+            mp3_recodec = [
+                "ffmpeg",
+                "-i", self.combined_audio_path,
+                "-c:a", "libmp3lame",
+                "-qscale:a", "2",
+                os.path.join(self.record_dir, "cleaned_audio.mp3")
+            ]
+            command = [
+                "ffmpeg",
+                "-i", os.path.join(self.record_dir, "cleaned_audio.mp3"),
+                "-i", self.video_path,
+                "-c:v", "copy",
+                "-c:a", "aac",
+                "-ar", "48000",
+                "-strict", "experimental",
+                self.full_recording_path
+            ]
+            
+            subprocess.run(mp3_recodec, check=True)
+            subprocess.run(command, check=True)
+            print(f"Successfully merged {self.combined_audio_path} and {self.video_path} into {self.full_recording_path}")
+            
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to merge audio and video: {e}")
+            
+        except FileNotFoundError:
+            print("FFmpeg is not installed or not in PATH enviromental variables.")
 
 
 def list_audio_devices() -> list:
