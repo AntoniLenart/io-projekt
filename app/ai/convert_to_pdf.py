@@ -26,6 +26,8 @@ class PDFGenerator:
         self.transcription_path = transcription_path
         self.output_pdf_path = output_pdf_path
         self.pdf = FPDF()
+        self.pdf.add_font('DejaVu', '', os.path.join(os.getcwd(),'assets', 'fonts','DejaVuSans.ttf'), uni=True)
+        self.pdf.add_font('DejaVu', 'B', os.path.join(os.getcwd(),'assets', 'fonts','DejaVuSans-Bold.ttf'), uni=True) 
 
     def read_file(self, txt_file_path):
         """
@@ -53,14 +55,14 @@ class PDFGenerator:
             title (str): The title to be added at the top of the page.
             content (list): Lines of text content to be added to the PDF.
         """
-        self.pdf.set_font("Arial", size=12)
+        self.pdf.set_font("DejaVu", size=12)
         self.pdf.add_page()
 
-        self.pdf.set_font("Arial", style='B', size=16)
+        self.pdf.set_font("DejaVu", style='B', size=16)
         self.pdf.cell(0, 10, title, ln=True, align='C')
         self.pdf.ln(10)
 
-        self.pdf.set_font("Arial", size=12)
+        self.pdf.set_font("DejaVu", size=12)
         for line in content:
             self.pdf.multi_cell(0, 10, line)
 

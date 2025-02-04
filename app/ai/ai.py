@@ -2,7 +2,7 @@ from openai import OpenAI
 from pathlib import Path
 import os
 
-# client = YOUR API KEY
+client = OpenAI(api_key="") # YOUR API KEY HERE
 
 
 def transcribe_audio(record_dir: str, lang: str):
@@ -30,6 +30,8 @@ def transcribe_audio(record_dir: str, lang: str):
     transcript_file_path = os.path.join(record_dir, "transcription.txt")
     with open(transcript_file_path, "w", encoding="utf-8") as tr:
         tr.write(transcript.text)
+    
+    return transcript_file_path
 
 def summarize_transcript(record_dir: str, lang: str):
     """
@@ -77,3 +79,5 @@ def summarize_transcript(record_dir: str, lang: str):
     summary_text = summary.choices[0].message.content
     with open(summary_file_path, "w", encoding="utf-8") as su:
         su.write(summary_text)
+    
+    return summary_file_path

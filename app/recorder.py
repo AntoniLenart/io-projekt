@@ -12,6 +12,8 @@ import subprocess
 from PIL import ImageGrab
 from app.ai.ai import summarize_transcript, transcribe_audio
 import mss
+from skimage.metrics import structural_similarity as ssim
+from app.ai.convert_to_pdf import PDFGenerator
 
 
 class Recorder:
@@ -49,6 +51,9 @@ class Recorder:
         self.combined_audio_path = None
         self.video_path = None
         self.full_recording_path = None
+        self.transcription_path = None
+        self.summary_path = None
+        self.pdf_notes_path = None
         
         self.mic_index = None
         self.stereo_index = None
@@ -122,8 +127,13 @@ class Recorder:
                 self.full_recording_path = os.path.join(self.record_dir, "full_recording.mp4")
             
             self.merge_audio_video()
-            # transcribe_audio(self.record_dir, self.settings["language"])
-            # summarize_transcript(self.record_dir, self.settings["language"])
+            self.transcription_path = transcribe_audio(self.record_dir, self.settings["language"])
+            self.summary_path = summarize_transcript(self.record_dir, self.settings["language"])
+            
+            self.pdf_notes_path = os.path.join(self.record_dir, "notes.pdf")
+            
+            pdf_generator = PDFGenerator(self.summary_path, self.transcription_path, self.pdf_notes_path)
+            pdf_generator.generate_pdf()
 
             messagebox.showinfo("Recording", f"Recording saved at: {self.record_dir}")
         else:
@@ -134,16 +144,18 @@ class Recorder:
         Records the screen, detects significant changes, and saves slides to a PDF.
         """         
         start_time = time.time()
+        
         frames = []
         frame_ctr = 0
+        
         sct = mss.mss()
         screen_size = {"top": 0, "left": 0, "width": 1920, "height": 1080}
         
         while self.recording:
             img = sct.grab(screen_size)
             img_data = np.array(img)
-            rgb_img = cv2.cvtColor(img_data, cv2.COLOR_BGR2RGB)
-            frames.append(rgb_img)
+            bgr_img = img_data[:, :, :3]
+            frames.append(bgr_img)
             frame_ctr += 1
             
         stop_time = time.time()
@@ -215,6 +227,8 @@ class Recorder:
             frame_rate=44100,
             channels=2
         )
+        
+        mic_sound = mic_sound.apply_gain(10)
         
         overlay = stereo_sound.overlay(mic_sound, position=0)
         overlay.export(self.combined_audio_path, format="mp3", bitrate="192k")
