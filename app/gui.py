@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import threading
 import tkinter as tk
 from tkinter import messagebox
 from app.recorder import Recorder, list_audio_devices
@@ -125,15 +126,27 @@ class App:
         """
         Stops the recording process and allows the user to save the file with a custom name.
         """
+
         def save_with_name():
             """
             Saves the recording with the provided custom name or a default name if not specified.
             """
-            custom_name = name_entry.get()
-            self.recorder.stop_recording(custom_name=custom_name.strip())
-            popup.destroy()
-            self.start_button.configure(state="normal")
-            self.stop_button.configure(state="disabled")
+            custom_name = name_entry.get().strip()
+
+            # Ukryj okno wpisywania i pokaż ekran ładowania
+            name_entry.pack_forget()
+            save_button.pack_forget()
+            label.config(text="Zapisywanie...", font=("Arial", 12, "bold"))
+            popup.update_idletasks()
+
+            # Uruchom zapisywanie w osobnym wątku
+            def save_recording():
+                self.recorder.stop_recording(custom_name=custom_name)
+                popup.destroy()
+                self.start_button.configure(state="normal")
+                self.stop_button.configure(state="disabled")
+
+            threading.Thread(target=save_recording, daemon=True).start()
 
         popup = tk.Toplevel(self.root)
         popup.title("Save Recording")
