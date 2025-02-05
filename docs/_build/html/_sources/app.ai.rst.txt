@@ -1,0 +1,37 @@
+app.ai package
+==============
+
+Submodules
+----------
+
+app.ai.ai module
+----------------
+
+.. automodule:: app.ai.ai
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+app.ai.convert\_to\_pdf module
+------------------------------
+
+.. automodule:: app.ai.convert_to_pdf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+app.ai.test\_ai module
+----------------------
+
+.. automodule:: app.ai.test_ai
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: app.ai
+   :members:
+   :undoc-members:
+   :show-inheritance:

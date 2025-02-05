@@ -1,0 +1,413 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>app.recorder &mdash; NotesApp 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            NotesApp
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">app</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">NotesApp</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">app.recorder</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for app.recorder</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyautogui</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tkinter</span><span class="w"> </span><span class="kn">import</span> <span class="n">messagebox</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyaudio</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydub</span><span class="w"> </span><span class="kn">import</span> <span class="n">AudioSegment</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageGrab</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.ai.ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">summarize_transcript</span><span class="p">,</span> <span class="n">transcribe_audio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">mss</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">skimage.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">structural_similarity</span> <span class="k">as</span> <span class="n">ssim</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.ai.convert_to_pdf</span><span class="w"> </span><span class="kn">import</span> <span class="n">PDFGenerator</span>
+
+
+<div class="viewcode-block" id="Recorder">
+<a class="viewcode-back" href="../../app.html#app.recorder.Recorder">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Recorder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class for recording screen and audio simultaneously, with options to save and manage recordings.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        BASE_DIR (str): Base directory for saving recordings.</span>
+<span class="sd">        app: Reference to the main application object, providing access to settings.</span>
+<span class="sd">        recording (bool): Flag to indicate if recording is in progress.</span>
+<span class="sd">        captured_video: VideoWriter object for saving screen recordings.</span>
+<span class="sd">        audio_thread (threading.Thread): Thread for recording audio.</span>
+<span class="sd">        video_thread (threading.Thread): Thread for recording screen.</span>
+<span class="sd">        mic_audio_stream: PyAudio stream object for capturing microphone audio.</span>
+<span class="sd">        mic_audio_frames (list): Buffer for storing microphone audio frames.</span>
+<span class="sd">        mic_audio_path (str): File path for saving microphone audio.</span>
+<span class="sd">        stereo_audio_stream: PyAudio stream object for capturing stereo audio.</span>
+<span class="sd">        stereo_audio_frames (list): Buffer for storing stereo audio frames.</span>
+<span class="sd">        stereo_audio_path (str): File path for saving stereo audio.</span>
+<span class="sd">        combined_audio_path (str): File path for saving combined audio (microphone + stereo).</span>
+<span class="sd">        settings (dict): Configuration settings from the app.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">BASE_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="s2">&quot;assets&quot;</span><span class="p">,</span> <span class="s2">&quot;recordings&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the Recorder class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_DIR</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recording</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="n">settings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">combined_audio_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_recording_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transcription_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">summary_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pdf_notes_path</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">mic_index</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stereo_index</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fourcc</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">VideoWriter_fourcc</span><span class="p">(</span><span class="o">*</span><span class="s2">&quot;mp4v&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">captured_video</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">mic_audio_stream</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mic_audio_frames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stereo_audio_stream</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stereo_audio_frames</span> <span class="o">=</span> <span class="p">[]</span>
+        
+<div class="viewcode-block" id="Recorder.start_recording">
+<a class="viewcode-back" href="../../app.html#app.recorder.Recorder.start_recording">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start_recording</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Starts recording screen and audio simultaneously.</span>
+<span class="sd">        Creates necessary directories and initializes audio and video threads.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">_%H%M%S&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_DIR</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;recording_</span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">combined_audio_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="s2">&quot;combined_audio.mp3&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="s2">&quot;video.mp4&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_recording_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="s2">&quot;full_recording.mp4&quot;</span><span class="p">)</span>
+        
+        <span class="n">p</span> <span class="o">=</span> <span class="n">pyaudio</span><span class="o">.</span><span class="n">PyAudio</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mic_index</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mic_index</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">get_default_input_device_info</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">get_device_count</span><span class="p">()):</span>
+            <span class="n">dev</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">get_device_info_by_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dev</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Miks stereo (Realtek(R) Audio)&quot;</span> <span class="ow">and</span> <span class="n">dev</span><span class="p">[</span><span class="s2">&quot;hostApi&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stereo_index</span> <span class="o">=</span> <span class="n">dev</span><span class="p">[</span><span class="s2">&quot;index&quot;</span><span class="p">]</span>
+                <span class="k">break</span>
+                
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stereo_index</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No stereo mix device detected. Switching do default.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stereo_index</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">get_default_output_device_info</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
+        
+        <span class="n">p</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">audio_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_record_audio</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_record_screen</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">recording</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audio_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Recorder.stop_recording">
+<a class="viewcode-back" href="../../app.html#app.recorder.Recorder.stop_recording">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stop_recording</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">custom_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Stops recording and saves the recorded files. Optionally renames the recording directory.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            custom_name (str, optional): Custom name for the recording directory.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">recording</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recording</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_thread</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">video_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">captured_video</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">audio_thread</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">audio_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">custom_name</span><span class="p">:</span>
+                <span class="n">custom_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">BASE_DIR</span><span class="p">,</span> <span class="n">custom_name</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="n">custom_dir</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span> <span class="o">=</span> <span class="n">custom_dir</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">combined_audio_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="s2">&quot;combined_audio.mp3&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">video_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="s2">&quot;video.mp4&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">full_recording_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="s2">&quot;full_recording.mp4&quot;</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">merge_audio_video</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transcription_path</span> <span class="o">=</span> <span class="n">transcribe_audio</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="p">[</span><span class="s2">&quot;language&quot;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">summary_path</span> <span class="o">=</span> <span class="n">summarize_transcript</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="p">[</span><span class="s2">&quot;language&quot;</span><span class="p">])</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">pdf_notes_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="s2">&quot;notes.pdf&quot;</span><span class="p">)</span>
+            
+            <span class="n">pdf_generator</span> <span class="o">=</span> <span class="n">PDFGenerator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">summary_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">transcription_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pdf_notes_path</span><span class="p">)</span>
+            <span class="n">pdf_generator</span><span class="o">.</span><span class="n">generate_pdf</span><span class="p">()</span>
+
+            <span class="n">messagebox</span><span class="o">.</span><span class="n">showinfo</span><span class="p">(</span><span class="s2">&quot;Recording&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Recording saved at: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">messagebox</span><span class="o">.</span><span class="n">showerror</span><span class="p">(</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span> <span class="s2">&quot;No active recording.&quot;</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_record_screen</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Records the screen, detects significant changes, and saves slides to a PDF.</span>
+<span class="sd">        &quot;&quot;&quot;</span>         
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="n">frames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">frame_ctr</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="n">sct</span> <span class="o">=</span> <span class="n">mss</span><span class="o">.</span><span class="n">mss</span><span class="p">()</span>
+        <span class="n">screen_size</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;top&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">1920</span><span class="p">,</span> <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="mi">1080</span><span class="p">}</span>
+        
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">recording</span><span class="p">:</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">sct</span><span class="o">.</span><span class="n">grab</span><span class="p">(</span><span class="n">screen_size</span><span class="p">)</span>
+            <span class="n">img_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+            <span class="n">bgr_img</span> <span class="o">=</span> <span class="n">img_data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">frames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bgr_img</span><span class="p">)</span>
+            <span class="n">frame_ctr</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+        <span class="n">stop_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="n">stop_time</span> <span class="o">-</span> <span class="n">start_time</span>
+        <span class="n">obtained_fps</span> <span class="o">=</span> <span class="n">frame_ctr</span> <span class="o">/</span> <span class="n">duration</span> 
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">captured_video</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">VideoWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">video_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fourcc</span><span class="p">,</span> <span class="n">obtained_fps</span><span class="o">*</span><span class="mf">1.01</span><span class="p">,</span> <span class="n">pyautogui</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">captured_video</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span> <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frames</span><span class="p">]</span>
+        
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_record_audio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Records audio from both the microphone and the stereo mix (speaker output).</span>
+<span class="sd">        Saves audio frames to buffers for later processing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">pyaudio</span><span class="o">.</span><span class="n">PyAudio</span><span class="p">()</span>
+                
+        <span class="bp">self</span><span class="o">.</span><span class="n">mic_audio_stream</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+            <span class="nb">format</span><span class="o">=</span><span class="n">pyaudio</span><span class="o">.</span><span class="n">paInt16</span><span class="p">,</span>
+            <span class="n">channels</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">get_device_info_by_index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mic_index</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;maxInputChannels&quot;</span><span class="p">)),</span>
+            <span class="n">rate</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">get_device_info_by_index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mic_index</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;defaultSampleRate&quot;</span><span class="p">)),</span>
+            <span class="nb">input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">frames_per_buffer</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+            <span class="n">input_device_index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mic_index</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stereo_audio_stream</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+            <span class="nb">format</span><span class="o">=</span><span class="n">pyaudio</span><span class="o">.</span><span class="n">paInt16</span><span class="p">,</span>
+            <span class="n">channels</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">get_device_info_by_index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stereo_index</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;maxInputChannels&quot;</span><span class="p">)),</span>
+            <span class="n">rate</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">get_device_info_by_index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stereo_index</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;defaultSampleRate&quot;</span><span class="p">)),</span>
+            <span class="nb">input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">frames_per_buffer</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+            <span class="n">input_device_index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stereo_index</span>
+        <span class="p">)</span>
+
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">recording</span><span class="p">:</span>
+            <span class="n">mic_audio_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mic_audio_stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+            <span class="n">stereo_audio_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stereo_audio_stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mic_audio_frames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mic_audio_data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stereo_audio_frames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stereo_audio_data</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mic_audio_stream</span><span class="o">.</span><span class="n">stop_stream</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mic_audio_stream</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stereo_audio_stream</span><span class="o">.</span><span class="n">stop_stream</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stereo_audio_stream</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">p</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_audio</span><span class="p">()</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_audio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Saves microphone and stereo audio to separate WAV files and combines them into an MP3 file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">pyaudio</span><span class="o">.</span><span class="n">PyAudio</span><span class="p">()</span>
+        
+        <span class="n">mic_sound</span> <span class="o">=</span> <span class="n">AudioSegment</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mic_audio_frames</span><span class="p">),</span>
+            <span class="n">sample_width</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">get_sample_size</span><span class="p">(</span><span class="n">pyaudio</span><span class="o">.</span><span class="n">paInt16</span><span class="p">),</span>
+            <span class="n">frame_rate</span><span class="o">=</span><span class="mi">44100</span><span class="p">,</span>
+            <span class="n">channels</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
+        
+        <span class="n">stereo_sound</span> <span class="o">=</span> <span class="n">AudioSegment</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stereo_audio_frames</span><span class="p">),</span>
+            <span class="n">sample_width</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">get_sample_size</span><span class="p">(</span><span class="n">pyaudio</span><span class="o">.</span><span class="n">paInt16</span><span class="p">),</span>
+            <span class="n">frame_rate</span><span class="o">=</span><span class="mi">44100</span><span class="p">,</span>
+            <span class="n">channels</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
+        
+        <span class="n">mic_sound</span> <span class="o">=</span> <span class="n">mic_sound</span><span class="o">.</span><span class="n">apply_gain</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        
+        <span class="n">overlay</span> <span class="o">=</span> <span class="n">stereo_sound</span><span class="o">.</span><span class="n">overlay</span><span class="p">(</span><span class="n">mic_sound</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">overlay</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">combined_audio_path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;mp3&quot;</span><span class="p">,</span> <span class="n">bitrate</span><span class="o">=</span><span class="s2">&quot;192k&quot;</span><span class="p">)</span>
+
+        <span class="n">p</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="Recorder.merge_audio_video">
+<a class="viewcode-back" href="../../app.html#app.recorder.Recorder.merge_audio_video">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge_audio_video</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">mp3_recodec</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s2">&quot;ffmpeg&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;-i&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">combined_audio_path</span><span class="p">,</span>
+                <span class="s2">&quot;-c:a&quot;</span><span class="p">,</span> <span class="s2">&quot;libmp3lame&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;-qscale:a&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="s2">&quot;cleaned_audio.mp3&quot;</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">command</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s2">&quot;ffmpeg&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;-i&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">record_dir</span><span class="p">,</span> <span class="s2">&quot;cleaned_audio.mp3&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;-i&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_path</span><span class="p">,</span>
+                <span class="s2">&quot;-c:v&quot;</span><span class="p">,</span> <span class="s2">&quot;copy&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;-c:a&quot;</span><span class="p">,</span> <span class="s2">&quot;aac&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;-ar&quot;</span><span class="p">,</span> <span class="s2">&quot;48000&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;-strict&quot;</span><span class="p">,</span> <span class="s2">&quot;experimental&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">full_recording_path</span>
+            <span class="p">]</span>
+            
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">mp3_recodec</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Successfully merged </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">combined_audio_path</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">video_path</span><span class="si">}</span><span class="s2"> into </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">full_recording_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to merge audio and video: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;FFmpeg is not installed or not in PATH enviromental variables.&quot;</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="list_audio_devices">
+<a class="viewcode-back" href="../../app.html#app.recorder.list_audio_devices">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_audio_devices</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Lists available audio input devices.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: A list of tuples containing the index and name of each input device.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">pyaudio</span><span class="o">.</span><span class="n">PyAudio</span><span class="p">()</span>
+    <span class="n">device_count</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">get_device_count</span><span class="p">()</span>
+    <span class="n">devices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">seen_devices</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">device_count</span><span class="p">):</span>
+        <span class="n">device_info</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">get_device_info_by_index</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">device_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;maxInputChannels&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">device_name</span> <span class="o">=</span> <span class="n">device_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">encoding</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span> <span class="s2">&quot;latin1&quot;</span><span class="p">,</span> <span class="s2">&quot;windows-1250&quot;</span><span class="p">]:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">device_name</span> <span class="o">=</span> <span class="n">device_name</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;latin1&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">encoding</span><span class="p">)</span>
+                    <span class="k">break</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">UnicodeEncodeError</span><span class="p">,</span> <span class="ne">UnicodeDecodeError</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">device_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen_devices</span> <span class="ow">and</span> <span class="s2">&quot;mapowanie&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">device_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="n">devices</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">device_name</span><span class="p">))</span>
+                <span class="n">seen_devices</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">device_name</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">devices</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Bruno Banaszczyk, Antoni Lenart.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

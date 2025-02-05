@@ -1,0 +1,267 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>app.ai package &mdash; NotesApp 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            NotesApp
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">app</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">NotesApp</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">app.ai package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/app.ai.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="app-ai-package">
+<h1>app.ai package<a class="headerlink" href="#app-ai-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-app.ai.ai">
+<span id="app-ai-ai-module"></span><h2>app.ai.ai module<a class="headerlink" href="#module-app.ai.ai" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="app.ai.ai.summarize_transcript">
+<span class="sig-prename descclassname"><span class="pre">app.ai.ai.</span></span><span class="sig-name descname"><span class="pre">summarize_transcript</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lang</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/ai/ai.html#summarize_transcript"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.ai.ai.summarize_transcript" title="Link to this definition"></a></dt>
+<dd><p>Summarizes the transcript of an audio recording using OpenAI’s ChatGPT model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>record_dir</strong> (<em>str</em>) – Path to the directory containing the transcript file.</p></li>
+<li><p><strong>lang</strong> (<em>str</em>) – Language used in recorded meetings.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>FileNotFoundError</strong> – If the transcript file does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="app.ai.ai.transcribe_audio">
+<span class="sig-prename descclassname"><span class="pre">app.ai.ai.</span></span><span class="sig-name descname"><span class="pre">transcribe_audio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lang</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/ai/ai.html#transcribe_audio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.ai.ai.transcribe_audio" title="Link to this definition"></a></dt>
+<dd><p>Transcribes the combined audio file from a recording directory using OpenAI’s Whisper API.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>record_dir</strong> (<em>str</em>) – Path to the directory containing the audio file.</p></li>
+<li><p><strong>lang</strong> (<em>str</em>) – Language used in recorded meeting.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>FileNotFoundError</strong> – If the combined audio file does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-app.ai.convert_to_pdf">
+<span id="app-ai-convert-to-pdf-module"></span><h2>app.ai.convert_to_pdf module<a class="headerlink" href="#module-app.ai.convert_to_pdf" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="app.ai.convert_to_pdf.PDFGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">app.ai.convert_to_pdf.</span></span><span class="sig-name descname"><span class="pre">PDFGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transcription_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_pdf_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/ai/convert_to_pdf.html#PDFGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.ai.convert_to_pdf.PDFGenerator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A class to generate a PDF document by combining summary and transcription files.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="app.ai.convert_to_pdf.PDFGenerator.summary_path">
+<span class="sig-name descname"><span class="pre">summary_path</span></span><a class="headerlink" href="#app.ai.convert_to_pdf.PDFGenerator.summary_path" title="Link to this definition"></a></dt>
+<dd><p>Path to the summary text file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="app.ai.convert_to_pdf.PDFGenerator.transcription_path">
+<span class="sig-name descname"><span class="pre">transcription_path</span></span><a class="headerlink" href="#app.ai.convert_to_pdf.PDFGenerator.transcription_path" title="Link to this definition"></a></dt>
+<dd><p>Path to the transcription text file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="app.ai.convert_to_pdf.PDFGenerator.output_pdf_path">
+<span class="sig-name descname"><span class="pre">output_pdf_path</span></span><a class="headerlink" href="#app.ai.convert_to_pdf.PDFGenerator.output_pdf_path" title="Link to this definition"></a></dt>
+<dd><p>Path where the generated PDF will be saved.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="app.ai.convert_to_pdf.PDFGenerator.pdf">
+<span class="sig-name descname"><span class="pre">pdf</span></span><a class="headerlink" href="#app.ai.convert_to_pdf.PDFGenerator.pdf" title="Link to this definition"></a></dt>
+<dd><p>Instance of the FPDF class for generating PDFs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>FPDF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="app.ai.convert_to_pdf.PDFGenerator.add_text_to_pdf">
+<span class="sig-name descname"><span class="pre">add_text_to_pdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/ai/convert_to_pdf.html#PDFGenerator.add_text_to_pdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.ai.convert_to_pdf.PDFGenerator.add_text_to_pdf" title="Link to this definition"></a></dt>
+<dd><p>Adds a title and content to the PDF.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>title</strong> (<em>str</em>) – The title to be added at the top of the page.</p></li>
+<li><p><strong>content</strong> (<em>list</em>) – Lines of text content to be added to the PDF.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="app.ai.convert_to_pdf.PDFGenerator.generate_pdf">
+<span class="sig-name descname"><span class="pre">generate_pdf</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/ai/convert_to_pdf.html#PDFGenerator.generate_pdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.ai.convert_to_pdf.PDFGenerator.generate_pdf" title="Link to this definition"></a></dt>
+<dd><p>Generates a PDF combining the summary and transcription content.</p>
+<p>The content from the summary and transcription files is read, added to the PDF,
+and the resulting PDF is saved to the specified output path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Exception</strong> – If any error occurs during the PDF generation process.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="app.ai.convert_to_pdf.PDFGenerator.read_file">
+<span class="sig-name descname"><span class="pre">read_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">txt_file_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/ai/convert_to_pdf.html#PDFGenerator.read_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.ai.convert_to_pdf.PDFGenerator.read_file" title="Link to this definition"></a></dt>
+<dd><p>Reads content from a text file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>txt_file_path</strong> (<em>str</em>) – Path to the text file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Lines of text from the file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>FileNotFoundError</strong> – If the specified file does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-app.ai.test_ai">
+<span id="app-ai-test-ai-module"></span><h2>app.ai.test_ai module<a class="headerlink" href="#module-app.ai.test_ai" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="app.ai.test_ai.TestAiMethods">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">app.ai.test_ai.</span></span><span class="sig-name descname"><span class="pre">TestAiMethods</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">methodName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'runTest'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/ai/test_ai.html#TestAiMethods"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.ai.test_ai.TestAiMethods" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TestCase</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="app.ai.test_ai.TestAiMethods.test_summarize_transcript">
+<span class="sig-name descname"><span class="pre">test_summarize_transcript</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/ai/test_ai.html#TestAiMethods.test_summarize_transcript"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.ai.test_ai.TestAiMethods.test_summarize_transcript" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="app.ai.test_ai.TestAiMethods.test_transcribe_audio">
+<span class="sig-name descname"><span class="pre">test_transcribe_audio</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/ai/test_ai.html#TestAiMethods.test_transcribe_audio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.ai.test_ai.TestAiMethods.test_transcribe_audio" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-app.ai">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-app.ai" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Bruno Banaszczyk, Antoni Lenart.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
